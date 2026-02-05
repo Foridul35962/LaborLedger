@@ -1,0 +1,73 @@
+version: "3.8"
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: laborLedgerServer
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+      - mongo
+    env_file:
+      - .env.docker
+    volumes:
+      - ./server:/server
+      - /server/node_modules
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: laborLedgerClient
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    env_file:
+      - .env.docker
+    volumes:
+      - ./client:/client
+      - /client/node_modules
+
+  # MongoDB Service
+  mongo:
+    image: mongo:7
+    container_name: laborLedger_mongo
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - laborLedger_mongo_data:/data/db
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: laborLedger_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - laborLedger_redis_data:/data
+
+  # RedisInsight
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: laborLedger_redisinsight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+    volumes:
+      - laborLedger_redisinsight_data:/data
+
+volumes:
+  laborLedger_mongo_data:
+  laborLedger_redis_data:
+  laborLedger_redisinsight_data:
