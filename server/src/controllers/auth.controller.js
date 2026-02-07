@@ -67,6 +67,7 @@ export const login = AsyncHandler(async (req, res) => {
     await redis.del(limitKey)
 
     user.password = undefined
+    user.photo.publicId = undefined
 
     const tokenOption = {
         httpOnly: true,
