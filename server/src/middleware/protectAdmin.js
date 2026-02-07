@@ -3,7 +3,7 @@ import AsyncHandler from "../helpers/AsyncHandler.js";
 import jwt from 'jsonwebtoken'
 import Users from "../models/Users.model.js";
 
-const protect = AsyncHandler(async(req, res, next)=>{
+const protectAdmin = AsyncHandler(async(req, res, next)=>{
     const {token} = req.cookies
     if (!token) {
         throw new ApiErrors(401, 'unAuthentication access')
@@ -32,4 +32,4 @@ const protect = AsyncHandler(async(req, res, next)=>{
     next()
 })
 
-export default protect
+export default protectAdmin
