@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import errorHandler from './helpers/ErrorHandler.js'
 import adminRouter from './routes/admin.route.js'
 import authRouter from './routes/auth.route.js'
+import supervisorRouter from './routes/supervisor.route.js'
 
 const app = express()
 
@@ -22,6 +23,7 @@ app.use(express.urlencoded({extended:false}))
 //routes
 app.use('/api/auth', authRouter)
 app.use('/api/admin', adminRouter)
+app.use('/api/supervisor', supervisorRouter)
 
 app.get('/', (req, res) => {
     res.send('LaborLedge server is running ...')
