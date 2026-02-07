@@ -3,6 +3,7 @@ import * as authController from '../controllers/auth.controller.js'
 
 const authRouter = express.Router()
 
+authRouter.get('/user', authController.getUser)
 authRouter.post('/login', authController.login)
 authRouter.post('/forgetPass', authController.forgetPass)
 authRouter.post('/verifyPass', authController.verifyForgetPass)

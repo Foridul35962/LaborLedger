@@ -8,6 +8,34 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { check, validationResult } from 'express-validator'
 
+export const getUser = AsyncHandler(async (req, res) => {
+    const { token } = req.cookies
+    if (!token) {
+        throw new ApiErrors(401, 'unAuthentication access')
+    }
+
+    const decoded = await jwt.verify(token,
+        process.env.TOKEN_SECRET
+    )
+
+    if (!decoded) {
+        throw new ApiErrors(401, 'Token failed')
+    }
+
+    const userId = decoded.userId
+    const user = await Users.findById(userId).select('-password')
+
+    if (!user) {
+        throw new ApiErrors(401, 'unAuthentication access')
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, user, 'user fetch successful')
+        )
+})
+
 export const login = AsyncHandler(async (req, res) => {
     const { email, password } = req.body
     if (!email || !password) {
