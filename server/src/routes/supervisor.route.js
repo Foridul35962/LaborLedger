@@ -10,5 +10,7 @@ supervisorRouter.delete('/delete-worker', protect, supervisorController.deleteWo
 supervisorRouter.get('/all-workers', protect, supervisorController.viewWorker)
 supervisorRouter.post('/checkIn-worker', protect, supervisorController.checkInWorker)
 supervisorRouter.patch('/checkOut-worker', protect, supervisorController.checkOutWorker)
+supervisorRouter.patch('/leaveStart-worker', protect, supervisorController.leaveStart)
+supervisorRouter.patch('/leaveEnd-worker', protect, supervisorController.leaveEnd)
 
 export default supervisorRouter

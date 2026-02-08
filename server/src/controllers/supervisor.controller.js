@@ -334,3 +334,123 @@ export const checkOutWorker = AsyncHandler(async (req, res) => {
         )
     );
 })
+
+export const leaveStart = AsyncHandler(async (req, res) => {
+    const { workerId } = req.body;
+    const userId = req.user._id;
+
+    if (!workerId) {
+        throw new ApiErrors(400, "workerId is required")
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(workerId)) {
+        throw new ApiErrors(400, "invalid worker id");
+    }
+
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    const worker = await Workers.findById(workerId)
+    if (!worker) {
+        throw new ApiErrors(404, "worker not found")
+    }
+
+    if (worker.supervisor.toString() !== userId.toString()) {
+        throw new ApiErrors(401, 'unauthorize access')
+    }
+
+    const todayWork = worker.work.find(
+        (w) => w.date >= startDate && w.date <= endDate
+    );
+
+    if (!todayWork) {
+        throw new ApiErrors(404, "today work not found")
+    }
+
+    if (!todayWork.checkIn) {
+        throw new ApiErrors(400, "worker not checked in today")
+    }
+
+    if (todayWork.checkOut) {
+        throw new ApiErrors(400, "worker already checked out")
+    }
+
+    if (todayWork.leaveTimeStart && !todayWork.leaveTimeEnd) {
+        throw new ApiErrors(409, "leave already started");
+    }
+
+    const now = new Date();
+    todayWork.leaveTimeStart = now
+    todayWork.leaveTimeEnd = null
+
+    await worker.save();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { workerId, leaveTimeStart: now },
+            "leave time started successfully"
+        )
+    );
+})
+
+export const leaveEnd = AsyncHandler(async (req, res) => {
+    const { workerId } = req.body
+    const userId = req.user._id
+    if (!workerId) {
+        throw new ApiErrors(400, 'worker id is required')
+    }
+
+    const worker = await Workers.findById(workerId)
+    if (!worker) {
+        throw new ApiErrors(404, 'worker not found')
+    }
+
+    if (worker.supervisor.toString() !== userId.toString()) {
+        throw new ApiErrors(401, 'unauthorize access')
+    }
+
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    const end = new Date()
+    end.setHours(23, 59, 59, 999)
+
+    const todayWork = worker.work.find(
+        (w) => w.date >= start && w.date <= end
+    )
+
+    if (!todayWork) {
+        throw new ApiErrors(404, "today work not found")
+    }
+
+    if (!todayWork.checkIn) {
+        throw new ApiErrors(400, "worker not checked in today")
+    }
+
+    if (todayWork.checkOut) {
+        throw new ApiErrors(400, "worker already checked out")
+    }
+
+    if (!todayWork.leaveTimeStart) {
+        throw new ApiErrors(409, "leave not started");
+    }
+
+    if (todayWork.leaveTimeEnd) {
+        throw new ApiErrors(400, 'already leave end')
+    }
+
+    todayWork.leaveTimeEnd = Date.now()
+    const updatedWork = await worker.save()
+    if (!updatedWork) {
+        throw new ApiErrors(500, 'leave end failed')
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, workerId, 'leave time end successfully')
+        )
+})
