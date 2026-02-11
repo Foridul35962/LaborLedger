@@ -1,0 +1,30 @@
+ [
+  {
+    "id": 1,
+    "subTitle": "Smart Attendance Tracking",
+    "title": "Real-Time Worker Check-In & Check-Out System",
+    "desc": "A digital system that allows construction workers to check in and check out using mobile devices or biometric authentication. It ensures accurate time tracking and reduces manual errors in attendance records.",
+    "imageUrl": "https://wp.dynamiclayers.net/industrus/wp-content/uploads/sites/17/2020/11/slider-1.jpg"
+  },
+  {
+      "id": 2,
+    "subTitle": "Automated Wage Calculation",
+    "title": "Daily & Monthly Wage Processing",
+    "desc": "Automatically calculates worker wages based on attendance, overtime, and predefined salary structures. The system minimizes payroll errors and ensures timely and transparent payments.",
+    "imageUrl": "https://wp.dynamiclayers.net/industrus/wp-content/uploads/sites/17/2020/11/slider-2.jpg"
+  },
+  {
+      "id": 3,
+    "subTitle": "Project-Based Workforce Monitoring",
+    "title": "Multi-Site Worker Management",
+    "desc": "Manage and monitor workers across multiple construction sites. Assign workers to projects, track their performance, and generate attendance reports for each site separately.",
+    "imageUrl": "https://wp.dynamiclayers.net/industrus/wp-content/uploads/sites/17/2020/11/slider-3.jpg"
+  },
+  {
+      "id": 4,
+    "subTitle": "Reports & Insights",
+    "title": "Attendance & Payroll Analytics Dashboard",
+    "desc": "Provides detailed reports and analytics on worker attendance, salary expenses, and productivity trends. Helps management make informed decisions with downloadable reports.",
+    "imageUrl": "https://wp.dynamiclayers.net/industrus/wp-content/uploads/sites/17/2020/11/slider-3.jpg"
+  }
+]
