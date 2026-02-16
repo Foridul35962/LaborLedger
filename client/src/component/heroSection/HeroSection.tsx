@@ -26,7 +26,7 @@ export function HeroSection() {
               <div className='absolute top-1/2 left-0 flex flex-col  pl-15 w-1/2 text-white transform -translate-y-1/2'>
                 <span className='text-lg font-bold text-yellow-500'>{item.subTitle}</span>
                 <h2 className='text-3xl font-bold'>{item.title}</h2>
-                <p className='pt-2 text-sm'>{item.desc}</p>
+                <p className='pt-2 text-lg'>{item.desc}</p>
               </div>
             </div>
           ))}
