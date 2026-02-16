@@ -90,6 +90,22 @@ export const login = AsyncHandler(async (req, res) => {
         )
 })
 
+export const logout = AsyncHandler(async (req, res) => {
+    const tokenOption = {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 10 * 24 * 60 * 60 * 1000
+    }
+
+    return res
+        .status(200)
+        .clearCookie('token', tokenOption)
+        .json(
+            new ApiResponse(200, {}, 'user logout successfully')
+        )
+})
+
 export const forgetPass = AsyncHandler(async (req, res) => {
     const { email } = req.body
     if (!email) {
