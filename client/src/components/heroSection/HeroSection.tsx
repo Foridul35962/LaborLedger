@@ -2,7 +2,7 @@
 import useEmblaCarousel from 'embla-carousel-react'
 import Fade from 'embla-carousel-fade'
 import {  NextButton, PrevButton, usePrevNextButtons } from '../ui/emblaCarouselButton/EmblaCarouselArrow'
-import heroData from '@/component/heroSection/heroData.json'
+import heroData from '@/components/heroSection/heroData.json'
 import Image from 'next/image'
 import Autoplay from 'embla-carousel-autoplay'
 export function HeroSection() {
