@@ -70,10 +70,13 @@ export const addSupervisor = [
             throw new ApiErrors(500, 'user registration failed')
         }
 
+        user.password = undefined
+        user.photo.publicId = undefined
+
         return res
             .status(201)
             .json(
-                new ApiResponse(201, {}, 'user added successfully')
+                new ApiResponse(201, user, 'user added successfully')
             )
     })
 ]
@@ -118,11 +121,13 @@ export const editSupervisor = AsyncHandler(async (req, res) => {
     }
 
     await user.save()
+    user.password = undefined
+    user.photo.publicId = undefined
 
     return res
         .status(200)
         .json(
-            new ApiResponse(200, {}, 'user updated successfully')
+            new ApiResponse(200, user, 'user updated successfully')
         )
 })
 
