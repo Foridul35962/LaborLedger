@@ -100,7 +100,7 @@ const adminSlice = createSlice({
                 state.adminLoading = false
                 state.supervisors = action.payload.data
             })
-            .addCase(getAllSupervisor.pending, (state) => {
+            .addCase(getAllSupervisor.rejected, (state) => {
                 state.adminLoading = false
             })
         //add supervisor
@@ -112,7 +112,7 @@ const adminSlice = createSlice({
                 state.adminLoading = false
                 state.supervisors = [...state.supervisors, action.payload.data]
             })
-            .addCase(addSupervisor.pending, (state) => {
+            .addCase(addSupervisor.rejected, (state) => {
                 state.adminLoading = false
             })
         //edit supervisor
@@ -128,20 +128,20 @@ const adminSlice = createSlice({
                     state.supervisors[index] = user
                 }
             })
-            .addCase(editSupervisor.pending, (state) => {
+            .addCase(editSupervisor.rejected, (state) => {
                 state.adminLoading = false
             })
         //delete supervisor
         builder
-            .addCase(editSupervisor.pending, (state) => {
+            .addCase(deleteSupervisor.pending, (state) => {
                 state.adminLoading = true
             })
-            .addCase(editSupervisor.fulfilled, (state, action) => {
+            .addCase(deleteSupervisor.fulfilled, (state, action) => {
                 state.adminLoading = false
                 const userId = action.payload.data
                 state.supervisors = state.supervisors.filter((supervisor: any) => supervisor._id !== userId)
             })
-            .addCase(editSupervisor.pending, (state) => {
+            .addCase(deleteSupervisor.rejected, (state) => {
                 state.adminLoading = false
             })
     }
