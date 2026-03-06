@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios, { AxiosError } from "axios";
 
-const SERVER_URL = `${process.env.NEXT_PUBLIC_SERVER_URL}/auth`
+const SERVER_URL = `${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth`
 
 export const getUser = createAsyncThunk(
     "auth/getUser",
