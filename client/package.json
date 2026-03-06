@@ -17,7 +17,9 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.2",
     "react-redux": "^9.2.0",
+    "react-toastify": "^11.0.5",
     "redux": "^5.0.1"
   },
   "devDependencies": {
