@@ -14,11 +14,12 @@ export const getUser = AsyncHandler(async (req, res) => {
         throw new ApiErrors(401, 'unAuthentication access')
     }
 
-    const decoded = await jwt.verify(token,
-        process.env.TOKEN_SECRET
-    )
-
-    if (!decoded) {
+    let decoded
+    try {
+        decoded = await jwt.verify(token,
+            process.env.TOKEN_SECRET
+        )
+    } catch (error) {
         throw new ApiErrors(401, 'Token failed')
     }
 

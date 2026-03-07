@@ -4,7 +4,7 @@ import protect from '../middleware/protect.js'
 
 const authRouter = express.Router()
 
-authRouter.get('/user', protect, authController.getUser)
+authRouter.get('/user', authController.getUser)
 authRouter.post('/login', authController.login)
 authRouter.get('/logout', authController.logout)
 authRouter.post('/forgetPass', authController.forgetPass)
