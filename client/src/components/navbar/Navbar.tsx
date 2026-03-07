@@ -63,6 +63,7 @@ const Navbar = () => {
           {/* admin */}
           {
             user && user?.role === "admin" && <>
+              <Link href="/admin/supervisors" className="text-sm font-bold text-slate-600 hover:text-amber-600 transition-colors uppercase tracking-wider">Supervisors</Link>
               <Link href="/admin/dashboard" className="text-sm font-bold text-slate-600 hover:text-amber-600 transition-colors uppercase tracking-wider">Dashboard</Link>
             </>
           }
@@ -115,6 +116,7 @@ const Navbar = () => {
           {/* admin */}
           {
             user && user?.role === "admin" && <>
+              <Link href="/admin/supervisors" onClick={() => setIsOpen(false)} className="text-lg font-bold text-slate-700 hover:text-amber-600 transition-colors">Supervisors</Link>
               <Link href="/admin/deshboard" onClick={() => setIsOpen(false)} className="text-lg font-bold text-slate-700 hover:text-amber-600 transition-colors">Dashboard</Link>
             </>
           }

@@ -18,16 +18,9 @@ export const getAllSupervisor = createAsyncThunk(
     }
 )
 
-interface addSupervisorTypes {
-    fullName: string,
-    email: string,
-    password: string,
-    image: File
-}
-
 export const addSupervisor = createAsyncThunk(
     "admin/addSupervisor",
-    async (data: addSupervisorTypes, { rejectWithValue }) => {
+    async (data: FormData, { rejectWithValue }) => {
         try {
             const res = await axios.post(`${SERVER_URL}/add-supervisor`, data,
                 { withCredentials: true }
@@ -78,11 +71,13 @@ export const deleteSupervisor = createAsyncThunk(
 
 interface initialStateType {
     adminLoading: boolean,
+    deleteLoading: boolean,
     supervisors: any
 }
 
 const initialState: initialStateType = {
     adminLoading: false,
+    deleteLoading: false,
     supervisors: []
 }
 
@@ -134,15 +129,15 @@ const adminSlice = createSlice({
         //delete supervisor
         builder
             .addCase(deleteSupervisor.pending, (state) => {
-                state.adminLoading = true
+                state.deleteLoading = true
             })
             .addCase(deleteSupervisor.fulfilled, (state, action) => {
-                state.adminLoading = false
+                state.deleteLoading = false
                 const userId = action.payload.data
                 state.supervisors = state.supervisors.filter((supervisor: any) => supervisor._id !== userId)
             })
             .addCase(deleteSupervisor.rejected, (state) => {
-                state.adminLoading = false
+                state.deleteLoading = false
             })
     }
 })
