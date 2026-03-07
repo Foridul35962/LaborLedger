@@ -9,11 +9,13 @@ const protect = AsyncHandler(async(req, res, next)=>{
         throw new ApiErrors(401, 'unAuthentication access')
     }
 
-    const decoded = await jwt.verify(token,
-        process.env.TOKEN_SECRET
-    )
+    let decoded
 
-    if (!decoded) {
+    try {
+        decoded = await jwt.verify(token,
+            process.env.TOKEN_SECRET
+        )
+    } catch (error) {
         throw new ApiErrors(401, 'Token failed')
     }
 
