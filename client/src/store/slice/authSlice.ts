@@ -111,11 +111,13 @@ export const resendOtp = createAsyncThunk(
 
 interface initialStateType {
     authLoading: boolean,
+    userLoading: boolean,
     user: any
 }
 
 const initialState: initialStateType = {
     authLoading: false,
+    userLoading: false,
     user: null
 }
 
@@ -127,14 +129,14 @@ const authSlice = createSlice({
         //getUser
         builder
             .addCase(getUser.pending, (state) => {
-                state.authLoading = true
+                state.userLoading = false
             })
             .addCase(getUser.fulfilled, (state, action) => {
-                state.authLoading = false
+                state.userLoading = true
                 state.user = action.payload.data
             })
             .addCase(getUser.rejected, (state) => {
-                state.authLoading = false
+                state.userLoading = true
             })
         //login
         builder
