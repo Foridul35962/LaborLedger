@@ -80,6 +80,21 @@ export const getAllWorkers = createAsyncThunk(
     }
 )
 
+export const supervisorDashboard = createAsyncThunk(
+    "supervisor/dashboard",
+    async (_: null, { rejectWithValue }) => {
+        try {
+            const res = await axios.get(`${SERVER_URL}/dashboard`,
+                { withCredentials: true }
+            )
+            return res.data
+        } catch (error) {
+            const err = error as AxiosError<any>
+            return rejectWithValue(err?.response?.data || "Something went wrong")
+        }
+    }
+)
+
 interface workerIdType {
     workerId: string
 }
@@ -166,14 +181,16 @@ interface initialStateType {
     supLoading: boolean,
     supFetLoading: boolean,
     supCheckLoading: boolean,
-    workers: any
+    workers: any,
+    supervisorDashboardData: any
 }
 
 const initialState: initialStateType = {
     supLoading: false,
     supFetLoading: false,
     supCheckLoading: false,
-    workers: []
+    workers: [],
+    supervisorDashboardData: null
 }
 
 const supervisorSlice = createSlice({
@@ -234,13 +251,32 @@ const supervisorSlice = createSlice({
             .addCase(getAllWorkers.rejected, (state) => {
                 state.supFetLoading = false
             })
+        //get supervisor dashboard
+        builer
+            .addCase(supervisorDashboard.pending, (state) => {
+                state.supLoading = true
+            })
+            .addCase(supervisorDashboard.fulfilled, (state, action) => {
+                state.supLoading = false
+                state.supervisorDashboardData = action.payload.data
+            })
+            .addCase(supervisorDashboard.rejected, (state) => {
+                state.supLoading = false
+            })
         //checkIn worker
         builer
             .addCase(checkInWorker.pending, (state) => {
                 state.supCheckLoading = true
             })
-            .addCase(checkInWorker.fulfilled, (state) => {
+            .addCase(checkInWorker.fulfilled, (state, action) => {
                 state.supCheckLoading = false
+                const worker = action.payload.data
+                console.log('just worker', worker)
+                const idx = state.workers.findIndex((w:any)=>w._id === worker._id)
+                if (idx>-1) {
+                    state.workers[idx]=worker
+                }
+                console.log("checkIn Workers",state.workers)
             })
             .addCase(checkInWorker.rejected, (state) => {
                 state.supCheckLoading = false
@@ -250,11 +286,20 @@ const supervisorSlice = createSlice({
             .addCase(checkOutWorker.pending, (state) => {
                 state.supCheckLoading = true
             })
-            .addCase(checkOutWorker.fulfilled, (state) => {
+            .addCase(checkOutWorker.fulfilled, (state, action) => {
                 state.supCheckLoading = false
+                const worker = action.payload.data
+                console.log('just worker', worker)
+                const idx = state.workers.findIndex((w:any)=>w._id === worker._id)
+                if (idx>-1) {
+                    state.workers[idx]=worker
+                }
+                console.log("checkOut Workers",state.workers)
             })
             .addCase(checkOutWorker.rejected, (state) => {
                 state.supCheckLoading = false
             })
     }
 })
+
+export default supervisorSlice.reducer

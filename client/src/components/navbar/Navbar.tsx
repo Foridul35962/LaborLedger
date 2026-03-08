@@ -56,6 +56,7 @@ const Navbar = () => {
           {/* supervisor */}
           {
             user && user?.role === "supervisor" && <>
+              <Link href="/supervisor/workers" className="text-sm font-bold text-slate-600 hover:text-amber-600 transition-colors uppercase tracking-wider">Workers</Link>
               <Link href="/supervisor/dashboard" className="text-sm font-bold text-slate-600 hover:text-amber-600 transition-colors uppercase tracking-wider">Dashboard</Link>
             </>
           }
@@ -79,7 +80,7 @@ const Navbar = () => {
           ) : (
             <button
               onClick={handleLogInOut}
-              className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center gap-2 group shadow-lg shadow-slate-200"
+              className="bg-slate-900 cursor-pointer text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center gap-2 group shadow-lg shadow-slate-200"
             >
               {user ? "Logout" : "Login"}
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -109,6 +110,7 @@ const Navbar = () => {
           {/* supervisor */}
           {
             user && user?.role === "supervisor" && <>
+              <Link href="/supervisor/workers" onClick={() => setIsOpen(false)} className="text-lg font-bold text-slate-700 hover:text-amber-600 transition-colors">Workers</Link>
               <Link href="/supervisor/deshboard" onClick={() => setIsOpen(false)} className="text-lg font-bold text-slate-700 hover:text-amber-600 transition-colors">Dashboard</Link>
             </>
           }
