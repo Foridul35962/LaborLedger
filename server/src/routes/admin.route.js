@@ -6,6 +6,8 @@ import upload from '../middleware/upload.js'
 const adminRouter = express.Router()
 
 adminRouter.get('/supervisors', protectAdmin, adminController.getAllSupervisor)
+adminRouter.get('/supervisor/:supervisorId', protectAdmin, adminController.getSupervisor)
+adminRouter.get('/dashboard', protectAdmin, adminController.getAdminDashboard)
 adminRouter.post('/add-supervisor', protectAdmin, upload, adminController.addSupervisor)
 adminRouter.patch('/edit-supervisor', protectAdmin, upload, adminController.editSupervisor)
 adminRouter.delete('/delete-supervisor/:supervisorId', protectAdmin, adminController.deleteSupervisor)

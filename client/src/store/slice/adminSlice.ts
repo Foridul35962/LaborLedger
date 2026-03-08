@@ -3,6 +3,21 @@ import axios, { AxiosError } from "axios";
 
 const SERVER_URL = `${process.env.NEXT_PUBLIC_SERVER_URL}/api/admin`
 
+export const getSupervisor = createAsyncThunk(
+    "admin/getSupervisor",
+    async (supervisorId: any, { rejectWithValue }) => {
+        try {
+            const res = await axios.get(`${SERVER_URL}/supervisor/${supervisorId}`,
+                { withCredentials: true }
+            )
+            return res.data
+        } catch (error) {
+            const err = error as AxiosError<any>
+            return rejectWithValue(err?.response?.data || "Something went wrong")
+        }
+    }
+)
+
 export const getAllSupervisor = createAsyncThunk(
     "admin/getSupervisors",
     async (_, { rejectWithValue }) => {
@@ -33,15 +48,9 @@ export const addSupervisor = createAsyncThunk(
     }
 )
 
-interface editSupervisorTypes {
-    fullName: string | null,
-    email: string | null,
-    image: File | null
-}
-
 export const editSupervisor = createAsyncThunk(
     "admin/editSupervisor",
-    async (data: editSupervisorTypes, { rejectWithValue }) => {
+    async (data: FormData, { rejectWithValue }) => {
         try {
             const res = await axios.patch(`${SERVER_URL}/edit-supervisor`, data,
                 { withCredentials: true }
@@ -69,16 +78,35 @@ export const deleteSupervisor = createAsyncThunk(
     }
 )
 
+export const adminDashboard = createAsyncThunk(
+    "admin/dashboard",
+    async(_, {rejectWithValue})=>{
+        try {
+            const res = await axios.get(`${SERVER_URL}/dashboard`,
+                {withCredentials:true}
+            )
+            return res.data
+        } catch (error) {
+            const err = error as AxiosError<any>
+            return rejectWithValue(err?.response?.data || "Something went wrong")
+        }
+    }
+)
+
 interface initialStateType {
     adminLoading: boolean,
     deleteLoading: boolean,
-    supervisors: any
+    supervisorData: any
+    supervisors: any,
+    adminDashboardData: any
 }
 
 const initialState: initialStateType = {
     adminLoading: false,
     deleteLoading: false,
-    supervisors: []
+    supervisorData: null,
+    supervisors: [],
+    adminDashboardData: null
 }
 
 const adminSlice = createSlice({
@@ -86,6 +114,18 @@ const adminSlice = createSlice({
     initialState,
     reducers: {},
     extraReducers: (builder) => {
+        //get supervisor details
+        builder
+            .addCase(getSupervisor.pending, (state) => {
+                state.adminLoading = true
+            })
+            .addCase(getSupervisor.fulfilled, (state, action) => {
+                state.adminLoading = false,
+                    state.supervisorData = action.payload.data
+            })
+            .addCase(getSupervisor.rejected, (state) => {
+                state.adminLoading = false
+            })
         //get all supervisor
         builder
             .addCase(getAllSupervisor.pending, (state) => {
@@ -122,6 +162,8 @@ const adminSlice = createSlice({
                 if (index > -1) {
                     state.supervisors[index] = user
                 }
+                state.supervisorData.supervisor.fullName = user.fullName
+                state.supervisorData.supervisor.photo.url = user.photo.url
             })
             .addCase(editSupervisor.rejected, (state) => {
                 state.adminLoading = false
@@ -138,6 +180,18 @@ const adminSlice = createSlice({
             })
             .addCase(deleteSupervisor.rejected, (state) => {
                 state.deleteLoading = false
+            })
+        //admin dashboard
+        builder
+            .addCase(adminDashboard.pending, (state)=>{
+                state.adminLoading = true
+            })
+            .addCase(adminDashboard.fulfilled, (state, action)=>{
+                state.adminLoading = false
+                state.adminDashboardData = action.payload.data
+            })
+            .addCase(adminDashboard.rejected, (state)=>{
+                state.adminLoading = false
             })
     }
 })
