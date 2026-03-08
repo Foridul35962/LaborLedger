@@ -274,7 +274,7 @@ export const checkInWorker = AsyncHandler(async (req, res) => {
             {
                 _id: workerId,
                 fullName: worker.fullName,
-                phoneNumber:worker.phoneNumber,
+                phoneNumber: worker.phoneNumber,
                 todayCheckIn: now,
                 isCheckedInToday: true
             },
@@ -334,7 +334,7 @@ export const checkOutWorker = AsyncHandler(async (req, res) => {
             {
                 _id: workerId,
                 fullName: worker.fullName,
-                phoneNumber:worker.phoneNumber,
+                phoneNumber: worker.phoneNumber,
                 isCheckedInToday: true,
                 isCheckedOutToday: true,
             },
@@ -459,7 +459,7 @@ export const leaveEnd = AsyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(
-            new ApiResponse(200, workerId, 'leave time end successfully')
+            new ApiResponse(200, { workerId, leaveTimeEnd: Date.now() }, 'leave time end successfully')
         )
 })
 
@@ -548,14 +548,38 @@ export const workerDetails = AsyncHandler(async (req, res) => {
 
     if (workingDays.length === 0) {
         await redis.set(paymentMoneyToDateKey,
-            JSON.stringify({ workedDays: [], workingDays: 0, money: 0, workingHours: 0, overTimes: 0 }),
+            JSON.stringify(
+                {
+                    worker: {
+                        fullName: worker.fullName,
+                        phoneNumber: worker.phoneNumber,
+                        baseRate: worker.baseRate
+                    },
+                    workedDays: [],
+                    workingDays: 0,
+                    money: 0,
+                    workingHours: 0,
+                    overTimes: 0
+                }),
             "EX", 1800
         )
 
         return res
             .status(200)
             .json(
-                new ApiResponse(200, { workedDays: [], workingDays: 0, money: 0, workingHours: 0, overTimes: 0 }, 'payment money fetched successfully')
+                new ApiResponse(
+                    200, {
+                    worker: {
+                        fullName: worker.fullName,
+                        phoneNumber: worker.phoneNumber,
+                        baseRate: worker.baseRate
+                    },
+                    workedDays: [],
+                    workingDays: 0,
+                    money: 0,
+                    workingHours: 0,
+                    overTimes: 0
+                }, 'payment money fetched successfully')
             )
     }
 
@@ -610,6 +634,11 @@ export const workerDetails = AsyncHandler(async (req, res) => {
     }
 
     const payload = {
+        worker: {
+            fullName: worker.fullName,
+            phoneNumber: worker.phoneNumber,
+            baseRate: worker.baseRate
+        },
         workedDays: details,
         workingDays: details.length,
         money: Number(money.toFixed(2)),

@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, current } from "@reduxjs/toolkit";
 import axios, { AxiosError } from "axios";
 
 const SERVER_URL = `${process.env.NEXT_PUBLIC_SERVER_URL}/api/supervisor`
@@ -49,7 +49,7 @@ export const editWorker = createAsyncThunk(
 
 export const deleteWorker = createAsyncThunk(
     "supervisor/deleteWorker",
-    async (workerId: string, { rejectWithValue }) => {
+    async (workerId:any, { rejectWithValue }) => {
         try {
             const res = await axios.delete(`${SERVER_URL}/delete-worker`,
                 {
@@ -182,7 +182,8 @@ interface initialStateType {
     supFetLoading: boolean,
     supCheckLoading: boolean,
     workers: any,
-    supervisorDashboardData: any
+    supervisorDashboardData: any,
+    workerData: any
 }
 
 const initialState: initialStateType = {
@@ -190,7 +191,8 @@ const initialState: initialStateType = {
     supFetLoading: false,
     supCheckLoading: false,
     workers: [],
-    supervisorDashboardData: null
+    supervisorDashboardData: null,
+    workerData: null
 }
 
 const supervisorSlice = createSlice({
@@ -222,6 +224,9 @@ const supervisorSlice = createSlice({
                 if (index > -1) {
                     state.workers[index] = user
                 }
+                state.workerData.worker.fullName = user.fullName
+                state.workerData.worker.phoneNumber = user.phoneNumber
+                state.workerData.worker.baseRate = user.baseRate
             })
             .addCase(editWorker.rejected, (state) => {
                 state.supLoading = false
@@ -299,6 +304,26 @@ const supervisorSlice = createSlice({
             .addCase(checkOutWorker.rejected, (state) => {
                 state.supCheckLoading = false
             })
+        //worker details
+        builer
+            .addCase(workerDetails.pending, (state)=>{
+                state.supFetLoading = true
+            })
+            .addCase(workerDetails.fulfilled, (state, action)=>{
+                state.supFetLoading = false
+                state.workerData = action.payload.data
+            })
+            .addCase(workerDetails.rejected, (state)=>{
+                state.supFetLoading = false
+            })
+        //leave start
+        // builer
+        //     .addCase(leaveStart.pending, (state)=>{
+        //         state.supLoading = true
+        //     })
+        //     .addCase(leaveStart.fulfilled, (state, action)=>{
+        //         state.supLoading = true
+        //     })
     }
 })
 
