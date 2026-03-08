@@ -272,8 +272,9 @@ export const checkInWorker = AsyncHandler(async (req, res) => {
         new ApiResponse(
             200,
             {
-                workerId,
+                _id: workerId,
                 fullName: worker.fullName,
+                phoneNumber:worker.phoneNumber,
                 todayCheckIn: now,
                 isCheckedInToday: true
             },
@@ -330,7 +331,13 @@ export const checkOutWorker = AsyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(
             200,
-            { workerId, fullName: worker.fullName, checkOut: now },
+            {
+                _id: workerId,
+                fullName: worker.fullName,
+                phoneNumber:worker.phoneNumber,
+                isCheckedInToday: true,
+                isCheckedOutToday: true,
+            },
             "worker checkout successfully"
         )
     );
@@ -622,3 +629,146 @@ export const workerDetails = AsyncHandler(async (req, res) => {
         )
 
 })
+
+export const getSupervisorDashboard = AsyncHandler(async (req, res) => {
+
+    const supervisorId = req.user._id;
+
+    const cachedData = await redis.get(`supervisor:dashboard:${supervisorId}`);
+
+    if (cachedData) {
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                JSON.parse(cachedData),
+                "dashboard data fetched successfully"
+            )
+        );
+    }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    // Total workers
+    const totalWorkers = await Workers.countDocuments({
+        supervisor: supervisorId
+    });
+
+    // Workers with work logs
+    const workers = await Workers.find({
+        supervisor: supervisorId
+    }).lean();
+
+    let presentToday = 0;
+    let totalWorkHoursToday = 0;
+    let totalOvertimeToday = 0;
+    let weeklyWorkHours = 0;
+
+    workers.forEach(worker => {
+
+        worker.work.forEach(work => {
+
+            const workDate = new Date(work.date);
+
+            // ---------- TODAY ----------
+            if (workDate >= todayStart && workDate <= todayEnd) {
+
+                if (work.checkIn && work.checkOut) {
+
+                    presentToday += 1;
+
+                    let duration =
+                        new Date(work.checkOut) - new Date(work.checkIn);
+
+                    if (work.leaveTimeStart && work.leaveTimeEnd) {
+
+                        const leaveDuration =
+                            new Date(work.leaveTimeEnd) -
+                            new Date(work.leaveTimeStart);
+
+                        duration -= leaveDuration;
+                    }
+
+                    const hours = duration / (1000 * 60 * 60);
+
+                    totalWorkHoursToday += hours;
+
+                    if (hours > 8) {
+                        totalOvertimeToday += hours - 8;
+                    }
+                }
+            }
+
+            // ---------- WEEK ----------
+            if (workDate >= startOfWeek && workDate <= endOfWeek) {
+
+                if (!work.checkIn || !work.checkOut) return;
+
+                let duration =
+                    new Date(work.checkOut) - new Date(work.checkIn);
+
+                if (work.leaveTimeStart && work.leaveTimeEnd) {
+
+                    const leaveDuration =
+                        new Date(work.leaveTimeEnd) -
+                        new Date(work.leaveTimeStart);
+
+                    duration -= leaveDuration;
+                }
+
+                const hours = duration / (1000 * 60 * 60);
+
+                weeklyWorkHours += hours;
+            }
+
+        });
+
+    });
+
+    const absentToday = totalWorkers - presentToday;
+
+    const dashboardData = {
+
+        stats: {
+            totalWorkers,
+            presentToday,
+            absentToday
+        },
+
+        todaySummary: {
+            totalWorkHoursToday: Number(totalWorkHoursToday.toFixed(2)),
+            totalOvertimeToday: Number(totalOvertimeToday.toFixed(2))
+        },
+
+        weeklySummary: {
+            weeklyWorkHours: Number(weeklyWorkHours.toFixed(2))
+        }
+
+    };
+
+    await redis.set(
+        `supervisor:dashboard:${supervisorId}`,
+        JSON.stringify(dashboardData),
+        "EX",
+        300
+    );
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            dashboardData,
+            "dashboard data fetched successfully"
+        )
+    );
+
+});
