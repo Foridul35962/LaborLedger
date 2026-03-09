@@ -14,5 +14,6 @@ supervisorRouter.patch('/checkOut-worker', protect, supervisorController.checkOu
 supervisorRouter.patch('/leaveStart-worker', protect, supervisorController.leaveStart)
 supervisorRouter.patch('/leaveEnd-worker', protect, supervisorController.leaveEnd)
 supervisorRouter.post('/worker-detail', protect, supervisorController.workerDetails)
+supervisorRouter.post('/worker-payment', protect, supervisorController.makePayment)
 
 export default supervisorRouter

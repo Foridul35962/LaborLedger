@@ -5,6 +5,7 @@ import AsyncHandler from "../helpers/AsyncHandler.js";
 import Workers from "../models/Workers.model.js";
 import Payments from "../models/Payments.model.js";
 import redis from "../config/redis.js";
+import { calculateWorkerPayment } from "../utils/caluculatePayment.js";
 
 export const addWorker = AsyncHandler(async (req, res) => {
     const userId = req.user._id
@@ -30,6 +31,10 @@ export const addWorker = AsyncHandler(async (req, res) => {
     if (!user) {
         throw new ApiErrors(500, 'worker added failed')
     }
+
+    const key = `supervisor:dashboard:${userId}`;
+
+    await redis.del(key);
 
     return res
         .status(201)
@@ -154,6 +159,12 @@ export const deleteWorker = AsyncHandler(async (req, res) => {
     if (!deleted) {
         throw new ApiErrors(500, "worker delete failed")
     }
+    const pattern = `paymentMoneyToDate:${workerId}:*`
+
+    const keys = await redis.keys(pattern)
+    if (keys.length > 0) {
+        await redis.del(...keys)
+    }
 
     return res
         .status(200)
@@ -267,6 +278,9 @@ export const checkInWorker = AsyncHandler(async (req, res) => {
     }
 
     await worker.save();
+    const key = `supervisor:dashboard:${userId}`;
+
+    await redis.del(key);
 
     return res.status(200).json(
         new ApiResponse(
@@ -475,6 +489,7 @@ export const workerDetails = AsyncHandler(async (req, res) => {
     }
 
     const toDate = new Date(paymentToDate)
+
     if (isNaN(toDate.getTime())) {
         throw new ApiErrors(400, 'invalid paymentToDate')
     }
@@ -483,155 +498,30 @@ export const workerDetails = AsyncHandler(async (req, res) => {
 
     const keyDate = toDate.toISOString().slice(0, 10)
     const paymentMoneyToDateKey = `paymentMoneyToDate:${workerId}:${keyDate}`
-    const paymentMoneyToDate = await redis.get(paymentMoneyToDateKey)
 
-    if (paymentMoneyToDate) {
-        return res
-            .status(200)
-            .json(
-                new ApiResponse(200, JSON.parse(paymentMoneyToDate), 'payment money fetched successfully')
-            )
+    const cached = await redis.get(paymentMoneyToDateKey)
+
+    if (cached) {
+        return res.status(200).json(
+            new ApiResponse(200, JSON.parse(cached), 'payment money fetched successfully')
+        )
     }
 
-    const workerKey = `worker:${workerId}`
-    const redisWorker = await redis.get(workerKey)
-
-    let worker
-
-    if (redisWorker) {
-        worker = JSON.parse(redisWorker)
-    } else {
-        worker = await Workers.findById(workerId)
-
-        if (!worker) {
-            throw new ApiErrors(404, 'worker not found')
-        }
-
-        await redis.set(workerKey,
-            JSON.stringify(worker),
-            "EX", 600);
-    }
+    const worker = await Workers.findById(workerId)
 
     if (!worker) {
         throw new ApiErrors(404, 'worker not found')
     }
 
     if (worker.supervisor.toString() !== userId.toString()) {
-        throw new ApiErrors(401, 'supervisor is unauthorized')
+        throw new ApiErrors(401, 'supervisor unauthorized')
     }
 
-    const lastPaymentKey = `workerLastPayment:${workerId}`
-    const lastPaymentRedis = await redis.get(lastPaymentKey)
+    const lastPayment = await Payments.findOne({ worker: workerId }).sort({ periodEnd: -1 })
 
-    let lastPaymentDay
+    const lastPaymentDay = lastPayment ? new Date(lastPayment.periodEnd) : new Date(0)
 
-    if (lastPaymentRedis) {
-        lastPaymentDay = JSON.parse(lastPaymentRedis)
-    } else {
-        const result = await Payments.aggregate([
-            { $match: { worker: new mongoose.Types.ObjectId(workerId) } },
-            { $group: { _id: "$worker", lastPayment: { $max: "$periodEnd" } } }
-        ])
-
-        lastPaymentDay = result?.[0]?.lastPayment
-        await redis.set(lastPaymentKey,
-            JSON.stringify(lastPaymentDay),
-            "EX", 600
-        )
-    }
-    lastPaymentDay = lastPaymentDay ? new Date(lastPaymentDay) : new Date(0)
-
-    const workingDays = (worker.work || []).filter((work) => {
-        const workDay = new Date(work.date)
-        return workDay > lastPaymentDay && workDay <= toDate
-    })
-
-    if (workingDays.length === 0) {
-        await redis.set(paymentMoneyToDateKey,
-            JSON.stringify(
-                {
-                    worker: {
-                        fullName: worker.fullName,
-                        phoneNumber: worker.phoneNumber,
-                        baseRate: worker.baseRate
-                    },
-                    workedDays: [],
-                    workingDays: 0,
-                    money: 0,
-                    workingHours: 0,
-                    overTimes: 0
-                }),
-            "EX", 1800
-        )
-
-        return res
-            .status(200)
-            .json(
-                new ApiResponse(
-                    200, {
-                    worker: {
-                        fullName: worker.fullName,
-                        phoneNumber: worker.phoneNumber,
-                        baseRate: worker.baseRate
-                    },
-                    workedDays: [],
-                    workingDays: 0,
-                    money: 0,
-                    workingHours: 0,
-                    overTimes: 0
-                }, 'payment money fetched successfully')
-            )
-    }
-
-    let money = 0
-    let workingHours = 0
-    let overTimes = 0
-
-    const details = []
-    for (const day of workingDays) {
-        if (!day.checkIn || !day.checkOut) {
-            continue
-        }
-
-        const checkIn = new Date(day.checkIn)
-        const checkOut = new Date(day.checkOut)
-
-        let leaveTime = 0
-        if (day.leaveTimeStart && day.leaveTimeEnd) {
-            leaveTime = new Date(day.leaveTimeEnd) - new Date(day.leaveTimeStart)
-            if (leaveTime < 0) {
-                leaveTime = 0
-            }
-        }
-
-        let workMs = (checkOut - checkIn) - leaveTime
-        if (workMs < 0) {
-            workMs = 0
-        }
-
-        const tempHour = workMs / (1000 * 60 * 60)
-        workingHours += tempHour
-
-        let tempMoney = tempHour * worker.baseRate
-
-        const tempOverTime = Math.max(0, tempHour - 8)
-        if (tempOverTime > 0) {
-            overTimes += tempOverTime
-            tempMoney += tempOverTime * worker.baseRate * 0.5
-        }
-        money += tempMoney
-
-        details.push({
-            date: day.date,
-            checkIn: day.checkIn,
-            checkOut: day.checkOut,
-            leaveTimeStart: day.leaveTimeStart || null,
-            leaveTimeEnd: day.leaveTimeEnd || null,
-            hours: Number(tempHour.toFixed(2)),
-            overtimeHours: Number(tempOverTime.toFixed(2)),
-            dayMoney: Number(tempMoney.toFixed(2))
-        })
-    }
+    const calculation = calculateWorkerPayment(worker, lastPaymentDay, toDate)
 
     const payload = {
         worker: {
@@ -639,23 +529,19 @@ export const workerDetails = AsyncHandler(async (req, res) => {
             phoneNumber: worker.phoneNumber,
             baseRate: worker.baseRate
         },
-        workedDays: details,
-        workingDays: details.length,
-        money: Number(money.toFixed(2)),
-        workingHours: Number(workingHours.toFixed(2)),
-        overTimes: Number(overTimes.toFixed(2))
+        ...calculation
     }
 
-    await redis.set(paymentMoneyToDateKey,
+    await redis.set(
+        paymentMoneyToDateKey,
         JSON.stringify(payload),
-        "EX", 1800
+        "EX",
+        600
     )
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(200, payload, 'payment money fetched successfully')
-        )
+    return res.status(200).json(
+        new ApiResponse(200, payload, 'payment money fetched successfully')
+    )
 
 })
 
@@ -711,10 +597,10 @@ export const getSupervisorDashboard = AsyncHandler(async (req, res) => {
 
             // ---------- TODAY ----------
             if (workDate >= todayStart && workDate <= todayEnd) {
-
-                if (work.checkIn && work.checkOut) {
-
+                if (work.checkIn >= todayStart && work.checkIn <= todayEnd) {
                     presentToday += 1;
+                }
+                if (work.checkIn && work.checkOut) {
 
                     let duration =
                         new Date(work.checkOut) - new Date(work.checkIn);
@@ -801,3 +687,55 @@ export const getSupervisorDashboard = AsyncHandler(async (req, res) => {
     );
 
 });
+
+export const makePayment = AsyncHandler(async (req, res) => {
+    const { workerId, paymentToDate } = req.body
+    const supervisorId = req.user._id
+
+    if (!workerId || !paymentToDate) {
+        throw new ApiErrors(400, "all fields required")
+    }
+
+    const worker = await Workers.findById(workerId)
+
+    if (!worker) {
+        throw new ApiErrors(404, "worker not found")
+    }
+
+    if (worker.supervisor.toString() !== supervisorId.toString()) {
+        throw new ApiErrors(403, "unauthorized")
+    }
+
+    const toDate = new Date(paymentToDate)
+    toDate.setHours(23, 59, 59, 999)
+
+    const lastPayment = await Payments.findOne({ worker: workerId }).sort({ periodEnd: -1 })
+
+    const lastPaymentDay = lastPayment ? new Date(lastPayment.periodEnd) : new Date(0)
+
+    const calculation = calculateWorkerPayment(worker, lastPaymentDay, toDate)
+
+    if (calculation.workingDays === 0) {
+        throw new ApiErrors(400, "no working days for payment")
+    }
+
+    const payment = await Payments.create({
+        worker: workerId,
+        periodStart: lastPaymentDay,
+        periodEnd: toDate,
+        baseRate: worker.baseRate,
+        totalDays: calculation.workingDays,
+        totalAmount: calculation.money
+    })
+
+    const keyDate = toDate.toISOString().slice(0, 10)
+    const paymentMoneyToDateKey = `paymentMoneyToDate:${workerId}:${keyDate}`
+
+    await redis.del(paymentMoneyToDateKey)
+    await redis.del(`workerLastPayment:${workerId}`)
+
+    return res.status(201).json(
+        new ApiResponse(201, payment, "payment created successfully")
+    )
+
+})

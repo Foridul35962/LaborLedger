@@ -49,7 +49,7 @@ export const editWorker = createAsyncThunk(
 
 export const deleteWorker = createAsyncThunk(
     "supervisor/deleteWorker",
-    async (workerId:any, { rejectWithValue }) => {
+    async (workerId: any, { rejectWithValue }) => {
         try {
             const res = await axios.delete(`${SERVER_URL}/delete-worker`,
                 {
@@ -177,13 +177,33 @@ export const workerDetails = createAsyncThunk(
     }
 )
 
+export const makePayment = createAsyncThunk(
+    "supervisor/payment",
+    async (data: {
+        workerId: string,
+        paymentToDate: Date
+    }, { rejectWithValue }) => {
+        try {
+            const res = await axios.post(`${SERVER_URL}/worker-payment`, data,
+                { withCredentials: true }
+            )
+            return res.data
+        } catch (error) {
+            const err = error as AxiosError<any>
+            return rejectWithValue(err?.response?.data || "Something went wrong")
+        }
+    }
+)
+
 interface initialStateType {
     supLoading: boolean,
     supFetLoading: boolean,
     supCheckLoading: boolean,
     workers: any,
     supervisorDashboardData: any,
-    workerData: any
+    workerData: any,
+    paymentDetails:any,
+    paymentLoading:boolean
 }
 
 const initialState: initialStateType = {
@@ -192,16 +212,18 @@ const initialState: initialStateType = {
     supCheckLoading: false,
     workers: [],
     supervisorDashboardData: null,
-    workerData: null
+    workerData: null,
+    paymentDetails:null,
+    paymentLoading:false
 }
 
 const supervisorSlice = createSlice({
     name: "supervisor",
     initialState,
     reducers: {},
-    extraReducers: (builer) => {
+    extraReducers: (builder) => {
         //add worker
-        builer
+        builder
             .addCase(addWorker.pending, (state) => {
                 state.supLoading = true
             })
@@ -213,7 +235,7 @@ const supervisorSlice = createSlice({
                 state.supLoading = false
             })
         //edit worker
-        builer
+        builder
             .addCase(editWorker.pending, (state) => {
                 state.supLoading = true
             })
@@ -232,7 +254,7 @@ const supervisorSlice = createSlice({
                 state.supLoading = false
             })
         //delete worker
-        builer
+        builder
             .addCase(deleteWorker.pending, (state) => {
                 state.supLoading = true
             })
@@ -245,7 +267,7 @@ const supervisorSlice = createSlice({
                 state.supLoading = false
             })
         //get all worker
-        builer
+        builder
             .addCase(getAllWorkers.pending, (state) => {
                 state.supFetLoading = true
             })
@@ -257,7 +279,7 @@ const supervisorSlice = createSlice({
                 state.supFetLoading = false
             })
         //get supervisor dashboard
-        builer
+        builder
             .addCase(supervisorDashboard.pending, (state) => {
                 state.supLoading = true
             })
@@ -269,7 +291,7 @@ const supervisorSlice = createSlice({
                 state.supLoading = false
             })
         //checkIn worker
-        builer
+        builder
             .addCase(checkInWorker.pending, (state) => {
                 state.supCheckLoading = true
             })
@@ -277,53 +299,57 @@ const supervisorSlice = createSlice({
                 state.supCheckLoading = false
                 const worker = action.payload.data
                 console.log('just worker', worker)
-                const idx = state.workers.findIndex((w:any)=>w._id === worker._id)
-                if (idx>-1) {
-                    state.workers[idx]=worker
+                const idx = state.workers.findIndex((w: any) => w._id === worker._id)
+                if (idx > -1) {
+                    state.workers[idx] = worker
                 }
-                console.log("checkIn Workers",state.workers)
+                console.log("checkIn Workers", state.workers)
             })
             .addCase(checkInWorker.rejected, (state) => {
                 state.supCheckLoading = false
             })
         //checkOut worker
-        builer
+        builder
             .addCase(checkOutWorker.pending, (state) => {
                 state.supCheckLoading = true
             })
             .addCase(checkOutWorker.fulfilled, (state, action) => {
                 state.supCheckLoading = false
                 const worker = action.payload.data
-                console.log('just worker', worker)
-                const idx = state.workers.findIndex((w:any)=>w._id === worker._id)
-                if (idx>-1) {
-                    state.workers[idx]=worker
+                const idx = state.workers.findIndex((w: any) => w._id === worker._id)
+                if (idx > -1) {
+                    state.workers[idx].isCheckedOutToday = worker.isCheckedOutToday
                 }
-                console.log("checkOut Workers",state.workers)
             })
             .addCase(checkOutWorker.rejected, (state) => {
                 state.supCheckLoading = false
             })
         //worker details
-        builer
-            .addCase(workerDetails.pending, (state)=>{
+        builder
+            .addCase(workerDetails.pending, (state) => {
                 state.supFetLoading = true
             })
-            .addCase(workerDetails.fulfilled, (state, action)=>{
+            .addCase(workerDetails.fulfilled, (state, action) => {
                 state.supFetLoading = false
                 state.workerData = action.payload.data
             })
-            .addCase(workerDetails.rejected, (state)=>{
+            .addCase(workerDetails.rejected, (state) => {
                 state.supFetLoading = false
             })
-        //leave start
-        // builer
-        //     .addCase(leaveStart.pending, (state)=>{
-        //         state.supLoading = true
-        //     })
-        //     .addCase(leaveStart.fulfilled, (state, action)=>{
-        //         state.supLoading = true
-        //     })
+        //payment
+        builder
+            .addCase(makePayment.pending, (state)=>{
+                state.paymentLoading = true
+                state.paymentDetails = null
+            })
+            .addCase(makePayment.fulfilled, (state, action)=>{
+                state.paymentLoading = false
+                state.paymentDetails = action.payload.data
+            })
+            .addCase(makePayment.rejected, (state)=>{
+                state.paymentLoading = false
+            })
+        
     }
 })
 
