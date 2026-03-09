@@ -519,7 +519,7 @@ export const workerDetails = AsyncHandler(async (req, res) => {
 
     const lastPayment = await Payments.findOne({ worker: workerId }).sort({ periodEnd: -1 })
 
-    const lastPaymentDay = lastPayment ? new Date(lastPayment.periodEnd) : new Date(0)
+    const lastPaymentDay = lastPayment ? new Date(lastPayment.periodEnd) : new Date(worker.createdAt)
 
     const calculation = calculateWorkerPayment(worker, lastPaymentDay, toDate)
 
@@ -711,7 +711,7 @@ export const makePayment = AsyncHandler(async (req, res) => {
 
     const lastPayment = await Payments.findOne({ worker: workerId }).sort({ periodEnd: -1 })
 
-    const lastPaymentDay = lastPayment ? new Date(lastPayment.periodEnd) : new Date(0)
+    const lastPaymentDay = lastPayment ? new Date(lastPayment.periodEnd) : new Date(worker.createdAt)
 
     const calculation = calculateWorkerPayment(worker, lastPaymentDay, toDate)
 
@@ -733,9 +733,67 @@ export const makePayment = AsyncHandler(async (req, res) => {
 
     await redis.del(paymentMoneyToDateKey)
     await redis.del(`workerLastPayment:${workerId}`)
+    const paymentKey = `paymentHistory:${workerId}`
+    await redis.del(paymentKey)
 
     return res.status(201).json(
         new ApiResponse(201, payment, "payment created successfully")
     )
 
+})
+
+export const paymentHistory = AsyncHandler(async (req, res) => {
+
+    const { workerId } = req.body
+
+    if (!workerId) {
+        throw new ApiErrors(400, 'workerId is required')
+    }
+
+    const worker = await Workers.findById(workerId)
+
+    if (!worker) {
+        throw new ApiErrors(404, "worker is not found")
+    }
+
+    if (worker.supervisor.toString() !== req.user._id.toString()) {
+        throw new ApiErrors(401, 'Unauthorized access')
+    }
+
+    const paymentKey = `paymentHistory:${workerId}`
+
+    const cached = await redis.get(paymentKey)
+
+    if (cached) {
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    JSON.parse(cached),
+                    "payment history fetched successfully"
+                )
+            )
+    }
+
+    const history = await Payments
+        .find({ worker: workerId })
+        .sort({ periodEnd: -1 })
+
+    await redis.set(
+        paymentKey,
+        JSON.stringify(history),
+        "EX",
+        600
+    )
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                history,
+                "payment history fetched successfully"
+            )
+        )
 })

@@ -5,12 +5,15 @@ import { AppDispatch, RootState } from '@/store/store'
 import { useParams, useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import Link from 'next/link'
 import {
   ArrowLeft, Calendar, Clock, DollarSign,
   User, Phone, Briefcase, CreditCard,
-  Loader2, History, TrendingUp, Filter, Trash2, AlertCircle, XCircle, Edit3, X, Save, CheckCircle2
+  Loader2, History, TrendingUp, Filter, Trash2, AlertCircle, XCircle, Edit3, X, Save, CheckCircle2,
+  ArrowRight
 } from 'lucide-react'
 import { toast } from 'react-toastify'
+import UserNotFound from '@/components/notFound/UserNotFound'
 
 const WorkerDetailsPage = () => {
   const { supFetLoading, workerData, paymentLoading } = useSelector((state: RootState) => state.supervisor)
@@ -86,10 +89,9 @@ const WorkerDetailsPage = () => {
         paymentToDate: new Date(paymentToDate)
       })).unwrap();
 
-      setLastPaymentData(res.data); // Backend theke asha object
+      setLastPaymentData(res.data);
       setIsPaymentSuccessOpen(true);
 
-      // Refresh details to show 0 money
       dispatch(workerDetails({ workerId: workerId as string, paymentToDate: new Date(paymentToDate) }));
     } catch (error: any) {
       toast.error(error.message || "Payment failed");
@@ -105,7 +107,7 @@ const WorkerDetailsPage = () => {
     )
   }
 
-  if (!workerData) return null
+  if (!workerData) return <UserNotFound />
 
   return (
     <div className="pt-24 pb-20 bg-[#F8FAFC] min-h-screen font-sans relative">
@@ -211,14 +213,28 @@ const WorkerDetailsPage = () => {
                       <span className="text-xl font-black text-amber-600">৳{workerData.money.toFixed(2)}</span>
                     </div>
                   </div>
-                  <button
-                    disabled={paymentLoading || workerData.money <= 0}
-                    onClick={handlePayment}
-                    className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200 disabled:opacity-50"
-                  >
-                    {paymentLoading ? <Loader2 className="animate-spin" size={20} /> : <DollarSign size={20} />}
-                    Record Full Payment
-                  </button>
+
+                  {/* --- Buttons Group --- */}
+                  <div className="space-y-3">
+                    <button
+                      disabled={paymentLoading || workerData.money <= 0}
+                      onClick={handlePayment}
+                      className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200 disabled:opacity-50"
+                    >
+                      {paymentLoading ? <Loader2 className="animate-spin" size={20} /> : <DollarSign size={20} />}
+                      Record Full Payment
+                    </button>
+
+                    {/* NEW: Payment History Link Button */}
+                    <Link
+                      href={`/supervisor/workers/payments/${workerId}`}
+                      className="w-full bg-white border-2 border-slate-100 text-slate-900 py-5 rounded-3xl font-black text-sm flex items-center justify-center gap-3 hover:border-slate-900 transition-all active:scale-95 shadow-sm"
+                    >
+                      <History size={18} className="text-amber-500" />
+                      See Payment History
+                      <ArrowRight size={16} className="text-slate-400" />
+                    </Link>
+                  </div>
                 </div>
               </div>
 
@@ -269,7 +285,6 @@ const WorkerDetailsPage = () => {
         </div>
       )}
 
-      {/* --- EDIT MODAL (Previous implementation) --- */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-6 backdrop-blur-md bg-slate-900/20 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl relative">

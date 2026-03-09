@@ -195,6 +195,21 @@ export const makePayment = createAsyncThunk(
     }
 )
 
+export const paymentHistory = createAsyncThunk(
+    "supervisor",
+    async (data: { workerId: string }, { rejectWithValue }) => {
+        try {
+            const res = await axios.post(`${SERVER_URL}/payment-history`, data,
+                { withCredentials: true }
+            )
+            return res.data
+        } catch (error) {
+            const err = error as AxiosError<any>
+            return rejectWithValue(err?.response?.data || "Something went wrong")
+        }
+    }
+)
+
 interface initialStateType {
     supLoading: boolean,
     supFetLoading: boolean,
@@ -202,8 +217,9 @@ interface initialStateType {
     workers: any,
     supervisorDashboardData: any,
     workerData: any,
-    paymentDetails:any,
-    paymentLoading:boolean
+    paymentDetails: any,
+    paymentLoading: boolean,
+    paymentHistoryData: any
 }
 
 const initialState: initialStateType = {
@@ -213,8 +229,9 @@ const initialState: initialStateType = {
     workers: [],
     supervisorDashboardData: null,
     workerData: null,
-    paymentDetails:null,
-    paymentLoading:false
+    paymentDetails: null,
+    paymentLoading: false,
+    paymentHistoryData: null
 }
 
 const supervisorSlice = createSlice({
@@ -338,18 +355,30 @@ const supervisorSlice = createSlice({
             })
         //payment
         builder
-            .addCase(makePayment.pending, (state)=>{
+            .addCase(makePayment.pending, (state) => {
                 state.paymentLoading = true
                 state.paymentDetails = null
             })
-            .addCase(makePayment.fulfilled, (state, action)=>{
+            .addCase(makePayment.fulfilled, (state, action) => {
                 state.paymentLoading = false
                 state.paymentDetails = action.payload.data
             })
-            .addCase(makePayment.rejected, (state)=>{
+            .addCase(makePayment.rejected, (state) => {
                 state.paymentLoading = false
             })
-        
+        //payment history
+        builder
+            .addCase(paymentHistory.pending, (state) => {
+                state.paymentLoading = true
+                state.paymentHistoryData = null
+            })
+            .addCase(paymentHistory.fulfilled, (state, action) => {
+                state.paymentLoading = false
+                state.paymentHistoryData = action.payload.data
+            })
+            .addCase(paymentHistory.rejected, (state) => {
+                state.paymentLoading = false
+            })
     }
 })
 
