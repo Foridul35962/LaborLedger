@@ -12,7 +12,7 @@ import Autoplay from "embla-carousel-autoplay";
 export function HeroSection() {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
     Fade(),
-    // Autoplay({ delay: 4000 }),
+    Autoplay({ delay: 4000 }),
   ]);
 
   const {
